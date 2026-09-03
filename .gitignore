@@ -1,0 +1,33 @@
+# Build outputs
+bin/
+obj/
+publish/
+logs/
+
+# Firebird and local databases/backups
+*.FDB
+*.fdb
+*.bak
+*.db
+*.sqlite
+
+# XML and document/certificate material
+*.xml
+*.pdf
+*.pfx
+*.p12
+*.pem
+*.key
+*.cer
+*.crt
+
+# Local secrets and environment files
+.env
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+
+# OS/editor files
+.DS_Store
+.vs/
+.vscode/
