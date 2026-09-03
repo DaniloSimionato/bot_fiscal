@@ -1,4 +1,5 @@
 using FriporaFiscalBot.Domain;
+using Xunit;
 
 namespace FriporaFiscalBot.Tests;
 
