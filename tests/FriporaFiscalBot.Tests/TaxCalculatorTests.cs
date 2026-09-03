@@ -1,3 +1,4 @@
+using System;
 using FriporaFiscalBot.Domain;
 using Xunit;
 
