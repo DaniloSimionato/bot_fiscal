@@ -1,3 +1,4 @@
+using FriporaFiscalBot;
 using FriporaFiscalBot.Configuration;
 using FriporaFiscalBot.Infrastructure;
 using Microsoft.Extensions.Options;
