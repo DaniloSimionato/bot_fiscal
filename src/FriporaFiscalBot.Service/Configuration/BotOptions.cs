@@ -18,6 +18,8 @@ public sealed class FirebirdOptions
 {
     public string DatabasePath { get; set; } = "";
     public string User { get; set; } = "SYSDBA";
+    // Uso temporário e restrito a testes locais em homologação. Nunca publique valor real.
+    public string Password { get; set; } = "";
     public string PasswordProtectedBase64 { get; set; } = "";
     public int Port { get; set; } = 3050;
 }

@@ -5,7 +5,10 @@ using Microsoft.Extensions.Options;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.Configure<BotOptions>(builder.Configuration.GetSection("FriporaFiscalBot"));
+builder.Services.AddOptions<BotOptions>()
+    .Bind(builder.Configuration.GetSection("FriporaFiscalBot"))
+    .ValidateOnStart();
+builder.Services.AddSingleton<IValidateOptions<BotOptions>, BotOptionsValidator>();
 builder.Services.AddSingleton<IBotClock, SystemBotClock>();
 builder.Services.AddSingleton<HeartbeatState>();
 builder.Services.AddSingleton<FirebirdNoteRepository>();

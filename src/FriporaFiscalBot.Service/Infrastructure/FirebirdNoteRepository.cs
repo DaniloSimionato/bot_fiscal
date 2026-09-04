@@ -18,7 +18,12 @@ public sealed class FirebirdNoteRepository
     // Fase 1: somente leitura. Nenhum método de escrita existe nesta classe.
     public async Task<IReadOnlyList<PendingNote>> ReadEligibleNotesAsync(CancellationToken cancellationToken)
     {
-        var password = SecretProtector.Unprotect(_options.Firebird.PasswordProtectedBase64);
+        var password = SecretProtector.ResolvePassword(
+            _options.Firebird,
+            _options.ModoSimulacao,
+            _options.AmbientePermitido,
+            _options.SeriePermitida);
+        _logger.LogInformation("Credencial do Firebird carregada.");
         var cs = new FbConnectionStringBuilder
         {
             Database = _options.Firebird.DatabasePath,
@@ -85,6 +90,26 @@ public sealed record PendingNote(
 
 public static class SecretProtector
 {
+    public static string ResolvePassword(
+        FirebirdOptions options,
+        bool simulation,
+        int ambientePermitido,
+        int seriePermitida)
+    {
+        if (!string.IsNullOrWhiteSpace(options.Password))
+        {
+            if (!simulation || ambientePermitido != 2 || seriePermitida != 3)
+            {
+                throw new InvalidOperationException(
+                    "Senha em texto somente é permitida em simulação, homologação e série 3.");
+            }
+
+            return options.Password;
+        }
+
+        return Unprotect(options.PasswordProtectedBase64);
+    }
+
     public static string Unprotect(string protectedBase64)
     {
         if (string.IsNullOrWhiteSpace(protectedBase64))
