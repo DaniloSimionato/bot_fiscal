@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using FriporaFiscalBot.Configuration;
 using FriporaFiscalBot.Infrastructure;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace FriporaFiscalBot.Tests;
