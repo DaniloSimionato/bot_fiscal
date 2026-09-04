@@ -37,8 +37,8 @@ novo total = round(total atual − ICMS-ST atual + novo ICMS-ST, 2)
 
 Esse arredondamento deverá ser confirmado contra o comportamento do Firebird e as notas 5, 6 e 7 no Windows antes da ativação do modo de aplicação.
 
-## Transação e idempotência da próxima fase
+## Transação e idempotência da aplicação controlada
 
 A fase de aplicação deverá reconsultar a nota dentro da transação, conferir os valores originais, bloquear a nota por chave lógica e atualizar itens/cabeçalho. Uma segunda execução deverá reconhecer os valores já corrigidos e ignorar a nota.
 
-Esta fase não contém `UPDATE`, `DELETE`, `INSERT`, `COMMIT` ou transmissão.
+O modo padrão continua sendo simulação. A aplicação controlada, quando explicitamente habilitada para a nota 234, relê e valida os dados dentro de uma única transação, atualiza somente os cinco campos fiscais permitidos, confere os valores finais e só então executa `COMMIT`; qualquer divergência ou erro executa `ROLLBACK`. Não há geração de XML, assinatura, alteração de `NFE_ACAO` ou transmissão.

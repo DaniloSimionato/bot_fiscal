@@ -56,13 +56,22 @@ internal sealed class StatusForm : Form
             var json = await reader.ReadLineAsync(timeout.Token);
             var status = JsonSerializer.Deserialize<JsonElement>(json ?? "{}");
 
-            _status.Text = "● Serviço: Em execução   Banco: Conectado";
-            _status.ForeColor = Color.DarkGreen;
+            var database = status.GetProperty("database").GetString();
+            _status.Text = database == "connected"
+                ? "● Serviço: Em execução   Banco: Conectado"
+                : "● Serviço: Em execução   Banco: Desconectado";
+            _status.ForeColor = database == "connected" ? Color.DarkGreen : Color.DarkOrange;
+            var target = status.TryGetProperty("targetNote", out var targetProperty) &&
+                         targetProperty.ValueKind != JsonValueKind.Null
+                ? targetProperty.ToString()
+                : "nenhuma";
             _details.Text = $"Modo: {status.GetProperty("mode").GetString()}\n" +
                             $"Série: {status.GetProperty("serie").GetInt32()}\n" +
+                            $"Nota alvo: {target}\n" +
                             $"Última verificação UTC: {status.GetProperty("lastCheckUtc")}\n" +
                             $"Última nota: {status.GetProperty("lastNote")}\n" +
                             $"Processadas: {status.GetProperty("processedCount")}\n" +
+                            $"Última ação: {status.GetProperty("lastAction")}\n" +
                             $"Último erro: {status.GetProperty("lastError")}";
         }
         catch (Exception ex) when (ex is IOException or TimeoutException or OperationCanceledException)

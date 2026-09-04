@@ -8,6 +8,9 @@ public sealed class BotOptions
     public bool PermitirProducao { get; set; } = false;
     public bool PermitirTransmissaoAutomatica { get; set; } = false;
     public bool ModoSimulacao { get; set; } = true;
+    public string ModoOperacao { get; set; } = "SIMULACAO";
+    public bool PermitirAplicacao { get; set; } = false;
+    public int? NotaAlvo { get; set; }
     public int IntervaloVerificacaoSegundos { get; set; } = 60;
     public int LeiturasEstaveisNecessarias { get; set; } = 2;
     public FirebirdOptions Firebird { get; set; } = new();

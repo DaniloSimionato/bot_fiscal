@@ -6,6 +6,7 @@ namespace FriporaFiscalBot;
 
 public sealed class Worker : BackgroundService
 {
+    private bool _applicationFinished;
     private readonly BotOptions _options;
     private readonly FirebirdNoteRepository _repository;
     private readonly HeartbeatState _heartbeat;
@@ -30,6 +31,7 @@ public sealed class Worker : BackgroundService
     {
         _logger.LogInformation("Fripora Fiscal Bot iniciado em modo {Mode}, série {Serie}.",
             _options.Mode, _options.SeriePermitida);
+        _heartbeat.Configure(_options.ModoOperacao, _options.SeriePermitida, _options.NotaAlvo);
 
         _ = Task.Run(() => _statusPipe.ServeAsync(stoppingToken), stoppingToken);
 
@@ -45,6 +47,30 @@ public sealed class Worker : BackgroundService
     {
         try
         {
+            if (string.Equals(_options.ModoOperacao, "APLICACAO", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_applicationFinished)
+                {
+                    _heartbeat.MarkCheck(true, "234", "Nota alvo já processada; execução única concluída.");
+                    return;
+                }
+
+                _logger.LogInformation("APLICAÇÃO: iniciando execução única protegida da nota 234.");
+                var result = await _repository.ApplyNote234Async(cancellationToken);
+                _logger.LogInformation(
+                    "APLICAÇÃO: nota 234; antigos ICMS-ST {OldIcmsSt}, valor {OldValue}; novos ICMS-ST {NewIcmsSt}, valor {NewValue}; itens {Items}; validação {Message}.",
+                    result.PreviousIcmsSt, result.PreviousValue, result.NewIcmsSt, result.NewValue,
+                    result.ItemsChanged, result.Message);
+                _heartbeat.MarkApplication(result);
+                if (result.Committed || result.AlreadyCorrected)
+                    _applicationFinished = true;
+                _heartbeat.MarkCheck(
+                    result.Committed || result.AlreadyCorrected,
+                    "234",
+                    result.Committed || result.AlreadyCorrected ? "" : result.Message);
+                return;
+            }
+
             var firstRead = await _repository.ReadEligibleNotesAsync(cancellationToken);
             await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
             var secondRead = await _repository.ReadEligibleNotesAsync(cancellationToken);

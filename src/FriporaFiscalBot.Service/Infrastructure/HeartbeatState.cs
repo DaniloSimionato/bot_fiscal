@@ -8,6 +8,30 @@ public sealed class HeartbeatState
     public string LastNote { get; private set; } = "";
     public string LastError { get; private set; } = "";
     public long ProcessedCount { get; private set; }
+    public string Mode { get; private set; } = "SIMULACAO";
+    public int Serie { get; private set; } = 3;
+    public int? TargetNote { get; private set; }
+    public string LastAction { get; private set; } = "";
+
+    public void Configure(string mode, int serie, int? targetNote)
+    {
+        lock (_sync)
+        {
+            Mode = mode;
+            Serie = serie;
+            TargetNote = targetNote;
+        }
+    }
+
+    public void MarkApplication(ApplyNoteResult result)
+    {
+        lock (_sync)
+        {
+            LastAction = result.Message;
+            if (result.Committed)
+                ProcessedCount++;
+        }
+    }
 
     public void MarkCheck(bool connected, string lastNote = "", string lastError = "")
     {
@@ -24,11 +48,13 @@ public sealed class HeartbeatState
     {
         service = "running",
         database = DatabaseConnected ? "connected" : "disconnected",
-        mode = "HOMOLOGACAO",
-        serie = 3,
+        mode = Mode,
+        serie = Serie,
+        targetNote = TargetNote,
         lastCheckUtc = LastCheckUtc,
         lastNote = LastNote,
         processedCount = ProcessedCount,
+        lastAction = LastAction,
         lastError = LastError
     };
 }
