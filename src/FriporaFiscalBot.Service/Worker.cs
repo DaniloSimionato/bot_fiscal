@@ -55,10 +55,47 @@ public sealed class Worker : BackgroundService
 
             foreach (var note in notes)
             {
-                // Fase 1: simulação. Não há UPDATE, geração de XML ou transmissão.
+                var items = await _repository.ReadItemsAsync(note.NotaId, cancellationToken);
+                var results = new List<FriporaFiscalBot.Domain.TaxItemResult>(items.Count);
+
                 _logger.LogInformation(
-                    "SIMULAÇÃO: nota {NotaId}, número {Numero}, série {Serie}, ambiente {Ambiente}, ICMS-ST atual {IcmsSt}, valor {ValorNota}.",
-                    note.NotaId, note.Numero, note.Serie, note.Ambiente, note.IcmsSt, note.ValorNota);
+                    "SIMULAÇÃO — NENHUMA ALTERAÇÃO FOI GRAVADA. Nota {NotaId}, número {Numero}, série {Serie}, quantidade de itens {QuantidadeItens}.",
+                    note.NotaId, note.Numero, note.Serie, items.Count);
+
+                foreach (var item in items)
+                {
+                    var result = FriporaFiscalBot.Domain.TaxCalculator.Calculate(
+                        new FriporaFiscalBot.Domain.TaxItemInput(
+                            item.Item,
+                            item.Valor,
+                            item.TotalAtual,
+                            item.Quantidade,
+                            item.ValorBaseSt,
+                            item.PerIcmsSt,
+                            item.ValorIcms,
+                            item.ValorIcmsStAtual),
+                        _options.Regra.PercentualCredito);
+                    results.Add(result);
+
+                    _logger.LogInformation(
+                        "SIMULAÇÃO — Nota {NotaId}, item {Item}: ICMS-ST atual {IcmsStAtual}; ICMS próprio {IcmsProprio}; base ST {BaseSt}; alíquota {Aliquota}%; crédito presumido {Credito}; novo ICMS-ST {NovoIcmsSt}; total atual {TotalAtual}; novo total {NovoTotal}.",
+                        note.NotaId,
+                        item.Item,
+                        item.ValorIcmsStAtual,
+                        item.ValorIcms,
+                        item.ValorBaseSt,
+                        item.PerIcmsSt,
+                        result.CreditoPresumido,
+                        result.ValorIcmsStNovo,
+                        item.TotalAtual,
+                        result.TotalNovo);
+                }
+
+                _logger.LogInformation(
+                    "SIMULAÇÃO — Nota {NotaId}: soma final ICMS-ST {IcmsStNovo}; novo valor total da nota {ValorNotaNovo}. NENHUMA ALTERAÇÃO FOI GRAVADA.",
+                    note.NotaId,
+                    results.Sum(result => result.ValorIcmsStNovo),
+                    results.Sum(result => result.TotalNovo));
             }
 
             _heartbeat.MarkCheck(true, notes.Count > 0 ? string.Join(",", notes.Select(n => n.NotaId)) : "");

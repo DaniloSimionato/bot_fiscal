@@ -74,6 +74,47 @@ public sealed class FirebirdNoteRepository
         return notes;
     }
 
+    public async Task<IReadOnlyList<PendingItem>> ReadItemsAsync(
+        int notaId, CancellationToken cancellationToken)
+    {
+        var password = SecretProtector.ResolvePassword(
+            _options.Firebird,
+            _options.ModoSimulacao,
+            _options.AmbientePermitido,
+            _options.SeriePermitida);
+        var cs = BuildConnectionString(_options.Firebird, password);
+
+        await using var connection = new FbConnection(cs);
+        await connection.OpenAsync(cancellationToken);
+
+        const string sql = """
+            SELECT ITEM, VALOR, TOTAL, QUANTIDADE, VALOR_BASE_ST,
+                   PER_ICMS_ST, VALOR_ICMS, VALOR_ICMS_ST
+            FROM NOTAS_EMITIDAS_ITENS
+            WHERE NOTA_ID = @notaId
+            ORDER BY ITEM
+            """;
+
+        var items = new List<PendingItem>();
+        await using var command = new FbCommand(sql, connection);
+        command.Parameters.AddWithValue("@notaId", notaId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            items.Add(new PendingItem(
+                reader.GetInt32(0),
+                reader.GetDecimal(1),
+                reader.GetDecimal(2),
+                reader.GetDecimal(3),
+                reader.GetDecimal(4),
+                reader.GetDecimal(5),
+                reader.GetDecimal(6),
+                reader.GetDecimal(7)));
+        }
+
+        return items;
+    }
+
     public static string BuildConnectionString(FirebirdOptions options, string password)
     {
         return new FbConnectionStringBuilder
@@ -93,6 +134,10 @@ public sealed class FirebirdNoteRepository
 public sealed record PendingNote(
     int NotaId, int Numero, int Serie, int Ambiente, int? Cstat, string? Protocolo,
     string Cancelada, decimal IcmsSt, decimal ValorNota);
+
+public sealed record PendingItem(
+    int Item, decimal Valor, decimal TotalAtual, decimal Quantidade,
+    decimal ValorBaseSt, decimal PerIcmsSt, decimal ValorIcms, decimal ValorIcmsStAtual);
 
 public static class SecretProtector
 {
