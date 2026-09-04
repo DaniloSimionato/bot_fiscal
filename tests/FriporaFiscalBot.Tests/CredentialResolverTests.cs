@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 using FirebirdSql.Data.FirebirdClient;
@@ -11,6 +12,34 @@ namespace FriporaFiscalBot.Tests;
 
 public sealed class CredentialResolverTests
 {
+    [Fact]
+    public void ItemQueryUsesQtdAndMapsItToQuantidade()
+    {
+        Assert.Contains("QTD AS QUANTIDADE", FirebirdNoteRepository.ItemsSql);
+
+        var table = new DataTable();
+        table.Columns.Add("ITEM", typeof(int));
+        table.Columns.Add("VALOR", typeof(decimal));
+        table.Columns.Add("TOTAL", typeof(decimal));
+        table.Columns.Add("QUANTIDADE", typeof(decimal));
+        table.Columns.Add("VALOR_BASE_ST", typeof(decimal));
+        table.Columns.Add("PER_ICMS_ST", typeof(decimal));
+        table.Columns.Add("VALOR_ICMS", typeof(decimal));
+        table.Columns.Add("VALOR_ICMS_ST", typeof(decimal));
+        table.Rows.Add(1, 100m, 120m, 2m, 200m, 17m, 20m, 10m);
+
+        using var reader = table.CreateDataReader();
+        Assert.True(reader.Read());
+        var item = FirebirdNoteRepository.MapItem(reader);
+
+        Assert.Equal(1, item.Item);
+        Assert.Equal(2m, item.Quantidade);
+        Assert.Equal(200m, item.ValorBaseSt);
+        Assert.Equal(17m, item.PerIcmsSt);
+        Assert.Equal(20m, item.ValorIcms);
+        Assert.Equal(10m, item.ValorIcmsStAtual);
+    }
+
     [Fact]
     public void BuildsLocalFirebirdConnectionWithSeparateHostAndDatabase()
     {

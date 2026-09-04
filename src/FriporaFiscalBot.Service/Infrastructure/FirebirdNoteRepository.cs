@@ -6,6 +6,14 @@ namespace FriporaFiscalBot.Infrastructure;
 
 public sealed class FirebirdNoteRepository
 {
+    public const string ItemsSql = """
+        SELECT ITEM, VALOR, TOTAL, QTD AS QUANTIDADE, VALOR_BASE_ST,
+               PER_ICMS_ST, VALOR_ICMS, VALOR_ICMS_ST
+        FROM NOTAS_EMITIDAS_ITENS
+        WHERE NOTA_ID = @notaId
+        ORDER BY ITEM
+        """;
+
     private readonly BotOptions _options;
     private readonly ILogger<FirebirdNoteRepository> _logger;
 
@@ -87,32 +95,27 @@ public sealed class FirebirdNoteRepository
         await using var connection = new FbConnection(cs);
         await connection.OpenAsync(cancellationToken);
 
-        const string sql = """
-            SELECT ITEM, VALOR, TOTAL, QUANTIDADE, VALOR_BASE_ST,
-                   PER_ICMS_ST, VALOR_ICMS, VALOR_ICMS_ST
-            FROM NOTAS_EMITIDAS_ITENS
-            WHERE NOTA_ID = @notaId
-            ORDER BY ITEM
-            """;
-
         var items = new List<PendingItem>();
-        await using var command = new FbCommand(sql, connection);
+        await using var command = new FbCommand(ItemsSql, connection);
         command.Parameters.AddWithValue("@notaId", notaId);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
-        {
-            items.Add(new PendingItem(
-                reader.GetInt32(0),
-                reader.GetDecimal(1),
-                reader.GetDecimal(2),
-                reader.GetDecimal(3),
-                reader.GetDecimal(4),
-                reader.GetDecimal(5),
-                reader.GetDecimal(6),
-                reader.GetDecimal(7)));
-        }
+            items.Add(MapItem(reader));
 
         return items;
+    }
+
+    public static PendingItem MapItem(System.Data.IDataRecord reader)
+    {
+        return new PendingItem(
+            reader.GetInt32(0),
+            reader.GetDecimal(1),
+            reader.GetDecimal(2),
+            reader.GetDecimal(3),
+            reader.GetDecimal(4),
+            reader.GetDecimal(5),
+            reader.GetDecimal(6),
+            reader.GetDecimal(7));
     }
 
     public static string BuildConnectionString(FirebirdOptions options, string password)
