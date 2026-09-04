@@ -16,6 +16,7 @@ public sealed class BotOptions
 
 public sealed class FirebirdOptions
 {
+    public string Host { get; set; } = "localhost";
     public string DatabasePath { get; set; } = "";
     public string User { get; set; } = "SYSDBA";
     // Uso temporário e restrito a testes locais em homologação. Nunca publique valor real.

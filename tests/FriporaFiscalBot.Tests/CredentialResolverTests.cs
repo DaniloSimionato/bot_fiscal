@@ -1,6 +1,7 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using FirebirdSql.Data.FirebirdClient;
 using FriporaFiscalBot.Configuration;
 using FriporaFiscalBot.Infrastructure;
 using Microsoft.Extensions.Options;
@@ -10,6 +11,27 @@ namespace FriporaFiscalBot.Tests;
 
 public sealed class CredentialResolverTests
 {
+    [Fact]
+    public void BuildsLocalFirebirdConnectionWithSeparateHostAndDatabase()
+    {
+        var options = new FirebirdOptions
+        {
+            Host = "localhost",
+            DatabasePath = @"C:\FriporaFiscalBot\BancoTeste\FRIPORA_TESTE.FDB",
+            User = "SYSDBA",
+            Port = 3050
+        };
+
+        var connectionString = FirebirdNoteRepository.BuildConnectionString(options, "senha-de-teste");
+        var parsed = new FbConnectionStringBuilder(connectionString);
+
+        Assert.Equal("localhost", parsed.DataSource);
+        Assert.Equal(options.DatabasePath, parsed.Database);
+        Assert.Equal(options.Port, parsed.Port);
+        Assert.Equal(options.User, parsed.UserID);
+        Assert.Equal("senha-de-teste", parsed.Password);
+    }
+
     [Fact]
     public void UsesPlainTextPasswordOnlyInSimulationHomologationSeries3()
     {

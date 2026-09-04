@@ -24,16 +24,7 @@ public sealed class FirebirdNoteRepository
             _options.AmbientePermitido,
             _options.SeriePermitida);
         _logger.LogInformation("Credencial do Firebird carregada.");
-        var cs = new FbConnectionStringBuilder
-        {
-            Database = _options.Firebird.DatabasePath,
-            UserID = _options.Firebird.User,
-            Password = password,
-            Port = _options.Firebird.Port,
-            Charset = "UTF8",
-            Pooling = false,
-            Dialect = 3
-        }.ToString();
+        var cs = BuildConnectionString(_options.Firebird, password);
 
         await using var connection = new FbConnection(cs);
         await connection.OpenAsync(cancellationToken);
@@ -81,6 +72,21 @@ public sealed class FirebirdNoteRepository
         }
 
         return notes;
+    }
+
+    public static string BuildConnectionString(FirebirdOptions options, string password)
+    {
+        return new FbConnectionStringBuilder
+        {
+            DataSource = string.IsNullOrWhiteSpace(options.Host) ? "localhost" : options.Host,
+            Database = options.DatabasePath,
+            UserID = options.User,
+            Password = password,
+            Port = options.Port,
+            Charset = "UTF8",
+            Pooling = false,
+            Dialect = 3
+        }.ToString();
     }
 }
 
